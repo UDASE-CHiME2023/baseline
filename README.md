@@ -1,7 +1,6 @@
-# baseline
-Baselines for the UDASE task of the CHiME 2023 challenge
+# Baselines for the UDASE task of the CHiME-7 challenge
 
-We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [2] method on the unlabeled CHiME data.
+We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [2] method on the unlabeled CHiME-5 data.
 
 ## Table of contents
 
@@ -13,7 +12,7 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
 - [References](#references)
 
 ## Datasets generation
-Two datasets are required for generation, namely, Libri3mix and CHiME.
+Two datasets are required for generation, namely, Libri3mix and CHiME-5.
 
 For the generation of Libri3Mix one can follow the instructions [here](https://github.com/JorisCos/LibriMix) or just follow this:
 ```shell
@@ -23,12 +22,12 @@ cd LibriMix
 ./generate_librimix.sh storage_dir
 ```
 
-For the generation of the CHiME data follow the instructions [here](https://github.com/UDASE-CHiME2023/unlabeled_data) or just follow these steps (this step requires the existence of CHiME-5 data under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
+For the generation of the CHiME-5 data follow the instructions [here](https://github.com/UDASE-CHiME2023/CHiME-5) or just follow these steps (this step requires the existence of CHiME-5 data under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
 ```shell
 cd {path_to_generate_CHiME_processed_data}
 # clone data repository
-git clone https://github.com/UDASE-CHiME2023/data.git
-cd unlabeled_data
+git clone https://github.com/UDASE-CHiME2023/CHiME-5.git
+cd CHiME-5
 
 # create CHiME conda environment
 conda env create -f environment.yml
@@ -77,7 +76,7 @@ python -Wignore run_sup_ood_pretrain.py --train libri1to3mix --val libri1to3mix 
 Don't forget to set _n_jobs_ to the number of CPUs to use, _cad_ to the cuda ids to be used and _bs_ to the batch size used w.r.t. your system. Also you need to set the _checkpoint_storage_path_ to a valid path.
 
 ## How to adapt the RemixIT student
-If you want to adapt your model to the CHiME data you can use as a warm-up checkpoint the previous teacher model and perform RemixIT using the CHiME mixture dataset (in order to use the annotated with VAD data just simple use the *--use_vad* at the end of the followin command): 
+If you want to adapt your model to the CHiME-5 data you can use as a warm-up checkpoint the previous teacher model and perform RemixIT using the CHiME-5 mixture dataset (in order to use the annotated with VAD data just simple use the *--use_vad* at the end of the followin command): 
 ```shell
 cd {the path that you stored the github repo}
 python -Wignore run_remixit.py --train chime --val chime libri1to3chime --test libri1to3mix \
