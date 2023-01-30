@@ -63,7 +63,7 @@ API_KEY = 'your_comet_ml_key'
 ## How to train the supervised teacher
 Running the out-of-domain supervised teacher with SI-SNR loss is as easy as: 
 ```shell
-cd {the path that you stored the github repo}
+cd {the path that you stored the github repo}/baseline
 python -Wignore run_sup_ood_pretrain.py --train libri1to3mix --val libri1to3mix libri1to3chime --test libri1to3mix \
 -fs 16000 --enc_kernel_size 81 --num_blocks 8 --out_channels 256 --divide_lr_by 3. \
 --upsampling_depth 7 --patience 15  -tags supervised_ood_teacher --n_epochs 81 \
@@ -78,7 +78,7 @@ Don't forget to set _n_jobs_ to the number of CPUs to use, _cad_ to the cuda ids
 ## How to adapt the RemixIT student
 If you want to adapt your model to the CHiME-5 data you can use as a warm-up checkpoint the previous teacher model and perform RemixIT using the CHiME-5 mixture dataset (in order to use the annotated with VAD data just simple use the *--use_vad* at the end of the followin command): 
 ```shell
-cd {the path that you stored the github repo}
+cd {the path that you stored the github repo}/baseline
 python -Wignore run_remixit.py --train chime --val chime libri1to3chime --test libri1to3mix \
 -fs 16000 --enc_kernel_size 81 --num_blocks 8 --out_channels 256 --divide_lr_by 3. \
 --student_depth_growth 1 --n_epochs_teacher_update 1 --teacher_momentum 0.99 \
