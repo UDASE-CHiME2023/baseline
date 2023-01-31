@@ -37,6 +37,7 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
 - [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
 - [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
 - [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
+- [Instructions for performance evaluation](#instructions-for-performance-evaluation)
 - [Baseline performance](#baseline-performance)
 - [References](#references)
 
@@ -148,6 +149,10 @@ input_mix = (input_mix - input_mix_mean) / (input_mix_std + 1e-9)
 estimates = model(input_mix)
 estimates = mixture_consistency.apply(estimates, input_mix)
 ```
+
+## Instructions for performance evaluation
+
+Coming soon.
 
 ## Baseline performance
 
