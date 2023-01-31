@@ -86,6 +86,7 @@ You should change the following:
 ```shell
 LIBRI3MIX_ROOT_PATH = '{inset_path_to_Libri3mix}'
 CHiME_ROOT_PATH = '{insert_path_of_processed_10s_CHiME5_data}'
+LIBRICHiME_ROOT_PATH = '{insert_path_of_processed_LibriCHiME5_data}'
 
 API_KEY = 'your_comet_ml_key'
 ```
