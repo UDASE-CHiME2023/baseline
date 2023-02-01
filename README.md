@@ -2,6 +2,34 @@
 
 We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [2] method on the unlabeled CHiME-5 data.
 
+**Fully-supervised Sudo rm -rf out-of-domain teacher**
+
+- The supervised Sudo rm -rf model has been trained on the out-of-domain (OOD) Libri3mix data using the available isolated clean speech and noise signals, where the proportion of 1-speaker, 2-speaker, and 3-speaker mixtures is set to 0.5, 0.25, and 0.25, respectively. 
+- The trained model has an encoder/decoder with 512 basis, 41 filter taps, a hop-size of 20 time-samples, and a depth of U = 8 U-ConvBlocks. 
+- We use as a loss function the negative scale invariant signal-to-noise ratio (SI-SNR) with equal weights on the speaker mix and the noise component.
+- We let the model train with an initial learning rate of 0.001 for 80 epochs while decreasing it to a third of its value every 15 epochs.
+
+**Self-supervised RemixIT's student**
+
+- The RemixIT network uses the pre-trained OOD supervised teacher and initializes exactly the same network as a student from the same checkpoint. 
+
+- In a nutshell, RemixIT uses the mixtures from the CHiME-5 data in the following way: 
+    
+    - 1) it feeds a batch of CHiME-5 mixtures in the frozen teacher to get some estimated speech and estimated noise waveforms;
+    - 2) it permutes the teacher's estimated noise waveforms across the batch dimension; 
+    - 3) it synthesizes new bootstrapped mixtures by adding the initial speech teacher's estimates with the permuted teacher's noise estimates; 
+    - 4) it trains the student model using as pseudo-targets the teacher's estimates. 
+
+    We use as a loss function the negative scale invariant signal-to-noise ratio (SI-SNR) with equal weights on both speech and noise pseudo-targets provided by the teacher network. 
+    
+    Although multiple teacher update protocols can be used, we have chosen to use an exponential moving average update [3] with a teacher momentum of $\gamma=0.99$, which can potentially provide the student model with even higher quality estimates than the initial OOD pre-trained teacher model.
+    An exponential movin teacher weight update (notice that for $\gamma=0$ the update protocol reduces to a sequentially updated teacher):
+    $$\theta\_{\mathcal{T}}^{(j+1)} = \gamma \theta\_{\mathcal{T}}^{(j)} + (1 - \gamma) \theta\_{\mathcal{S}}^{(j)}$$
+    
+    We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS (35 epochs) ```remixit_chime_adapted_student_besmos_ep35.pt```. When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_bestbak_ep85_using_vad.pt```. 
+    
+    A final student where we update the teacher only every 10 epochs and set $\gamma=0.$ (which is essentially the same as a sequentially updated teacher protocol) is also provided in ```remixit_chime_adapted_student_static_teacher_ep_33.py``` which is chosen based on the highest performing model (33 epochs), in terms of SI-SNR, on the Libri1to3CHiME data with 1 speaker active. We train this student modelwith an initial learning rate of 0.0001 and decreasing it to a third of its value every 10 epochs.
+
 ## Table of contents
 
 - [Datasets Generation](#datasets-generation)
@@ -9,6 +37,8 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
 - [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
 - [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
 - [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
+- [Instructions for performance evaluation](#instructions-for-performance-evaluation)
+- [Baseline performance](#baseline-performance)
 - [References](#references)
 
 ## Datasets generation
@@ -64,6 +94,7 @@ You should change the following in ```__config__.py```:
 ```shell
 LIBRI3MIX_ROOT_PATH = '{inset_path_to_Libri3mix}'
 CHiME_ROOT_PATH = '{insert_path_of_processed_10s_CHiME5_data}'
+LIBRICHiME_ROOT_PATH = '{insert_path_of_processed_LibriCHiME5_data}'
 
 API_KEY = 'your_comet_ml_API_key'
 ```
@@ -73,7 +104,7 @@ To get ```your_comet_ml_API_key```, you can follow the instructions [here](https
 ## How to train the supervised teacher
 Running the out-of-domain supervised teacher with SI-SNR loss is as easy as: 
 ```shell
-cd {the path that you stored the github repo}
+cd {the path that you stored the github repo}/baseline
 python -Wignore run_sup_ood_pretrain.py --train libri1to3mix --val libri1to3mix libri1to3chime --test libri1to3mix \
 -fs 16000 --enc_kernel_size 81 --num_blocks 8 --out_channels 256 --divide_lr_by 3. \
 --upsampling_depth 7 --patience 15  -tags supervised_ood_teacher --n_epochs 81 \
@@ -88,7 +119,7 @@ Don't forget to set _n_jobs_ to the number of CPUs to use, _cad_ to the cuda ids
 ## How to adapt the RemixIT student
 If you want to adapt your model to the CHiME-5 data you can use as a warm-up checkpoint the previous teacher model and perform RemixIT using the CHiME-5 mixture dataset (in order to use the annotated with VAD data just simple use the *--use_vad* at the end of the followin command): 
 ```shell
-cd {the path that you stored the github repo}
+cd {the path that you stored the github repo}/baseline
 python -Wignore run_remixit.py --train chime --val chime libri1to3chime --test libri1to3mix \
 -fs 16000 --enc_kernel_size 81 --num_blocks 8 --out_channels 256 --divide_lr_by 3. \
 --student_depth_growth 1 --n_epochs_teacher_update 1 --teacher_momentum 0.99 \
@@ -129,6 +160,32 @@ input_mix = (input_mix - input_mix_mean) / (input_mix_std + 1e-9)
 estimates = model(input_mix)
 estimates = mixture_consistency.apply(estimates, input_mix)
 ```
+
+## Instructions for performance evaluation
+
+Coming soon.
+
+## Baseline performance
+
+Coming soon.
+
+### Reverberant LibriCHiME-5 dataset
+
+|                                                      | SI-SDR (dB) | OVR_MOS | BAK_MOS | SIG_MOS |
+| ---------------------------------------------------- | ----------- | ------- | ------- | ------- |
+| unprocessed                                          |             |         |         |         |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) |             |         |         |         |
+| RemixIT (self-supervised student)                    |             |         |         |         |
+| RemixIT (self-supervised student) using VAD          |             |         |         |         |
+
+### Single-speaker segments of the CHiME-5 dataset
+
+|                        Mean                          | OVR_MOS | BAK_MOS | SIG_MOS |
+| ---------------------------------------------------- | ------- | ------- | ------- |
+| unprocessed                                          |         |         |         |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) |         |         |         |
+| RemixIT (self-supervised student)                    |         |         |         |
+| RemixIT (self-supervised student) using VAD          |         |         |         |
 
 
 ## References
