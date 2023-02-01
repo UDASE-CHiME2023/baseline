@@ -14,15 +14,20 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
 ## Datasets generation
 Two datasets are required for generation, namely, Libri3mix and CHiME-5.
 
-For the generation of Libri3Mix one can follow the instructions [here](https://github.com/JorisCos/LibriMix) or just follow this:
+For the generation of Libri3Mix (450GB) one can follow the instructions [here](https://github.com/JorisCos/LibriMix) or just follow this:
 ```shell
 cd {path_to_generate_Libri3mix}
 git clone https://github.com/JorisCos/LibriMix
 cd LibriMix 
-./generate_librimix.sh storage_dir
+conda create --name librimix # optional
+conda activate librimix # optional
+pip install -r requirements.txt
+conda install -c conda-forge sox # for linux
+# conda install -c groakat sox # for windows
+./generate_librimix.sh storage_dir 
 ```
 
-For the generation of the CHiME-5 data follow the instructions [here](https://github.com/UDASE-CHiME2023/CHiME-5) or just follow these steps (this step requires the existence of CHiME-5 data under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
+For the generation of the CHiME-5 data (25GB) follow the instructions [here](https://github.com/UDASE-CHiME2023/CHiME-5) or just follow these steps (this step requires the existence of CHiME-5 data (167GB) under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
 ```shell
 cd {path_to_generate_CHiME_processed_data}
 # clone data repository
@@ -48,17 +53,22 @@ Set the paths for the aforementioned datasets and include the path of this repo.
 git clone https://github.com/UDASE-CHiME2023/baseline.git
 export PYTHONPATH={the path that you stored the github repo}:$PYTHONPATH
 cd baseline
+conda create --name baseline python # optional
+conda activate baseline # optional
+sudo apt-get update # if RuntimeError: Unsupported compiler -- at least C++11 support is needed!
+sudo apt-get install build-essential -y # if RuntimeError: Unsupported compiler -- at least C++11 support is needed!
 python -m pip install --user -r requirements.txt
-vim __config__.py
 ```
 
-You should change the following:
+You should change the following in ```__config__.py```:
 ```shell
 LIBRI3MIX_ROOT_PATH = '{inset_path_to_Libri3mix}'
 CHiME_ROOT_PATH = '{insert_path_of_processed_10s_CHiME5_data}'
 
-API_KEY = 'your_comet_ml_key'
+API_KEY = 'your_comet_ml_API_key'
 ```
+
+To get ```your_comet_ml_API_key```, you can follow the instructions [here](https://www.comet.com/docs/v2/guides/getting-started/quickstart/).
 
 ## How to train the supervised teacher
 Running the out-of-domain supervised teacher with SI-SNR loss is as easy as: 

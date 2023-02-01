@@ -1,4 +1,5 @@
-LIBRI3MIX_ROOT_PATH = '/mnt/data/libri_mix/Libri3Mix'
-CHiME_ROOT_PATH = '/mnt/data/CHIME/processed_CHiME_10s/'
+LIBRI3MIX_ROOT_PATH = '/home/lborne/data/chime/librimix'
 
-API_KEY = 'insert_your_cometml_API_key_here'
+CHiME_ROOT_PATH = '/home/lborne/data/chime/udase_challenge/audio'
+
+API_KEY = 'NT9yG3QYnEXRzBOiMOpVEspW1'
