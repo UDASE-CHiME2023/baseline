@@ -151,7 +151,7 @@ model.load_state_dict(torch.load('.../pretrained_checkpoints/remixit_chime_adapt
 model = torch.nn.DataParallel(model).cuda()
 
 # Scale the input mixture, perform inference and apply mixture consistency
-input_mix, _ = torchaudio.load('audio_file.wav')
+input_mix, _ = torchaudio.load('audio_file.wav') # audio file should be mono channel
 input_mix = input_mix.unsqueeze(1).cuda() 
 # input_mix.shape = (batch, 1, time_samples)
 input_mix_std = input_mix.std(-1, keepdim=True)
