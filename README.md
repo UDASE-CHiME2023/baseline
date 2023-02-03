@@ -2,7 +2,7 @@
 
 **WARNING: We are still modifying the baseline, if you are interested in entering the UDASE task please check regularly the changes in this repository.**
 
-We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [2] method on the unlabeled CHiME-5 data.
+We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [3] method on the unlabeled CHiME-5 data.
 
 **Fully-supervised Sudo rm -rf out-of-domain teacher**
 
@@ -28,9 +28,10 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
     An exponential movin teacher weight update (notice that for $\gamma=0$ the update protocol reduces to a sequentially updated teacher):
     $$\theta\_{\mathcal{T}}^{(j+1)} = \gamma \theta\_{\mathcal{T}}^{(j)} + (1 - \gamma) \theta\_{\mathcal{S}}^{(j)}$$
     
-    We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS (35 epochs) ```remixit_chime_adapted_student_besmos_ep35.pt```. When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_bestbak_ep85_using_vad.pt```. 
-    
-    A final student where we update the teacher only every 10 epochs and set $\gamma=0.$ (which is essentially the same as a sequentially updated teacher protocol) is also provided in ```remixit_chime_adapted_student_static_teacher_ep_33.py``` which is chosen based on the highest performing model (33 epochs), in terms of SI-SNR, on the Libri1to3CHiME data with 1 speaker active. We train this student modelwith an initial learning rate of 0.0001 and decreasing it to a third of its value every 10 epochs.
+    **[Checkpoints](pretrained_checkpoints):**
+    - We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS (35 epochs) ```remixit_chime_adapted_student_besmos_ep35.pt```. 
+    - When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_bestbak_ep85_using_vad.pt```. 
+    - A final student where we update the teacher only every 10 epochs and set $\gamma=0.$ (which is essentially the same as a sequentially updated teacher protocol) is also provided in ```remixit_chime_adapted_student_static_teacher_ep_33.pt``` which is chosen based on the highest performing model (33 epochs), in terms of SI-SNR, on the Libri1to3CHiME data with 1 speaker active. We train this student model with an initial learning rate of 0.0001 and decreasing it to a third of its value every 10 epochs.
 
 ## Table of contents
 
@@ -46,15 +47,20 @@ We pre-train a supervised Sudo rm- rf [1] teacher on some out-of-domain data (e.
 ## Datasets generation
 Two datasets are required for generation, namely, Libri3mix and CHiME-5.
 
-For the generation of Libri3Mix one can follow the instructions [here](https://github.com/JorisCos/LibriMix) or just follow this:
+* **LibriMix:** For the generation of Libri3Mix one can follow the instructions [here](https://github.com/JorisCos/LibriMix) or just follow this:
 ```shell
 cd {path_to_generate_Libri3mix}
 git clone https://github.com/JorisCos/LibriMix
 cd LibriMix 
-./generate_librimix.sh storage_dir
+pip install -r requirements.txt
+conda install -c conda-forge sox # for linux
+# conda install -c groakat sox # for windows
+chmod +x generate_librimix.sh
+./generate_librimix.sh storage_dir 
 ```
+**Note:** If you have limited space, you can modify ```generate_librimix.sh``` to generate only Libri3Mix (not Libri2Mix) with ```freqs=16k``` and ```modes=min```.
 
-For the generation of the CHiME-5 data follow the instructions [here](https://github.com/UDASE-CHiME2023/CHiME-5) or just follow these steps (this step requires the existence of CHiME-5 data under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
+* **CHiME-5:** For the generation of the CHiME-5 data follow the instructions [here](https://github.com/UDASE-CHiME2023/CHiME-5) or just follow these steps (this step requires the existence of CHiME-5 data under some path, [apply-and-get-CHiME5-here](https://chimechallenge.github.io/chime6/download.html)):
 ```shell
 cd {path_to_generate_CHiME_processed_data}
 # clone data repository
@@ -72,6 +78,7 @@ python create_audio_segments.py {insert_path_of_CHiME5_data} json_files {insert_
 python create_audio_segments.py {insert_path_of_CHiME5_data} json_files {insert_path_of_processed_10s_CHiME5_data} --train_10s --train_vad --train_only
 ```
 
+* **LibriCHiME-5:** For the generation of the reverberant LibriCHiME-5 data follow the instructions [here](https://github.com/UDASE-CHiME2023/reverberant-LibriCHiME-5).
 
 ## Repo and paths configurations
 Set the paths for the aforementioned datasets and include the path of this repo.
@@ -84,14 +91,16 @@ python -m pip install --user -r requirements.txt
 vim __config__.py
 ```
 
-You should change the following:
+You should change the following in ```__config__.py```:
 ```shell
 LIBRI3MIX_ROOT_PATH = '{inset_path_to_Libri3mix}'
-CHiME_ROOT_PATH = '{insert_path_of_processed_10s_CHiME5_data}'
+CHiME_ROOT_PATH = '{insert_path_of_processed_CHiME5_data}'
 LIBRICHiME_ROOT_PATH = '{insert_path_of_processed_LibriCHiME5_data}'
 
-API_KEY = 'your_comet_ml_key'
+API_KEY = 'your_comet_ml_API_key'
 ```
+
+To get ```your_comet_ml_API_key```, you can follow the instructions [here](https://www.comet.com/docs/v2/guides/getting-started/quickstart/).
 
 ## How to train the supervised teacher
 Running the out-of-domain supervised teacher with SI-SNR loss is as easy as: 
@@ -118,7 +127,6 @@ python -Wignore run_remixit.py --train chime --val chime libri1to3chime --test l
 --upsampling_depth 7 --patience 10 --learning_rate 0.0003 -tags remixit student allData \
 --n_epochs 100 --project_name uchime_baseline_v3 --clip_grad_norm 5.0 --audio_timelength 8.0 \
 --min_or_max min --max_num_sources 2 --save_models_every 1 --initialize_student_from_checkpoint \
---checkpoint_storage_path /home/thymios/UCHIME_checkpoints \
 --warmup_checkpoint ../pretrained_checkpoints/libri1to3mix_supervised_teacher_w_mixconsist.pt \
 --checkpoint_storage_path {insert_path_to_save_models} --log_audio --apply_mixture_consistency \
 --n_jobs 12 -cad 2 3 -bs 24
@@ -126,6 +134,8 @@ python -Wignore run_remixit.py --train chime --val chime libri1to3chime --test l
 
 ## How to load a pretrained checkpoint
 ```python
+import torch
+import torchaudio
 import baseline.utils.mixture_consistency as mixture_consistency
 import baseline.models.improved_sudormrf as improved_sudormrf
 
@@ -139,10 +149,11 @@ model = improved_sudormrf.SuDORMRF(
         num_sources=2,
     )
 # You can load the state_dict as here:
-model.load_state_dict(torch.load('.../unsup_speech_enh_adaptation/pretrained_checkpoints/remixit_chime_adapted_student_bestbak_ep85_using_vad.pt'))
+model.load_state_dict(torch.load('.../pretrained_checkpoints/remixit_chime_adapted_student_bestbak_ep85_using_vad.pt'))
 model = torch.nn.DataParallel(model).cuda()
 
 # Scale the input mixture, perform inference and apply mixture consistency
+input_mix, _ = torchaudio.load('audio_file.wav') # audio file should be mono channel
 input_mix = input_mix.unsqueeze(1).cuda() 
 # input_mix.shape = (batch, 1, time_samples)
 input_mix_std = input_mix.std(-1, keepdim=True)
@@ -184,6 +195,8 @@ Coming soon.
 
 Initial repo: https://github.com/etzinis/unsup_speech_enh_adaptation/
 
-[1] Tzinis, E., Wang, Z., Jiang, X., and Smaragdis, P., “Compute and memory efficient universal sound source separation.” In Journal of Signal Processing Systems, vol. 9, no. 2, pp. 245–259, 2022, Springer.
+[1] Tzinis, E., Wang, Z., & Smaragdis, P. (2020, September). Sudo rm-rf: Efficient networks for universal audio source separation. In 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP). <https://arxiv.org/abs/2007.06833>
 
-[2] Tzinis, E., Adi, Y., Ithapu, V. K., Xu, B., Smaragdis, P., and Kumar, A., “RemixIT: Continual Self-Training of Speech Enhancement Models via Bootstrapped Remixing.” In IEEE Journal of Selected Topics in Signal Processing, vol. 16, no. 6, pp. 1329–1341, 2022, IEEE.
+[2] Tzinis, E., Wang, Z., Jiang, X., and Smaragdis, P., Compute and memory efficient universal sound source separation. In Journal of Signal Processing Systems, vol. 9, no. 2, pp. 245–259, 2022, Springer. <https://arxiv.org/pdf/2103.02644.pdf>
+
+[3] Tzinis, E., Adi, Y., Ithapu, V. K., Xu, B., Smaragdis, P., & Kumar, A. (October, 2022). RemixIT: Continual self-training of speech enhancement models via bootstrapped remixing. In IEEE Journal of Selected Topics in Signal Processing. <https://arxiv.org/abs/2202.08862>
