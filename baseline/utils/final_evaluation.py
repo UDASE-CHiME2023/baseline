@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
                 s_est_speech = student_estimates[0, 0, :file_length].detach().cpu().numpy().squeeze()
 
-            # Peak normalization to 0.7, just to make sure that clipping does not happen after loundness normalization.
+            # Peak normalization to 0.7, just to make sure that clipping does not happen after loundness normalization
             s_est_speech -= s_est_speech.mean()
             s_est_speech /= np.abs(s_est_speech).max() + 1e-9
             s_est_speech *= 0.7
