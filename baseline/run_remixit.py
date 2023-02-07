@@ -18,6 +18,7 @@ from comet_ml import Experiment
 import copy
 import torch
 import numpy as np
+import pyloudnorm as pyln
 
 from tqdm import tqdm
 from pprint import pprint
@@ -36,8 +37,7 @@ from asteroid.losses import pairwise_neg_snr
 args = parser.get_args()
 hparams = vars(args)
 generators = dataset_setup.unsupervised_setup(hparams)
-
-
+                    
 def get_new_student(hparams, depth_growth):
     student = improved_sudormrf.SuDORMRF(
         out_channels=hparams["out_channels"],
@@ -56,6 +56,11 @@ def freeze_model(model):
         if f.requires_grad:
             f.requires_grad = False
 
+def apply_loudness_normalization(s_est_speech, target_lufs = -30.0):
+    s_est_speech = s_est_speech.squeeze()
+    loudness = meter.integrated_loudness(s_est_speech)
+    s_est_speech = pyln.normalize.loudness(s_est_speech, loudness, target_lufs)
+    return s_est_speech
 
 def apply_output_transform(rec_sources_wavs, input_mix_std,
                            input_mix_mean, input_mom, hparams):
@@ -71,6 +76,8 @@ def normalize_waveform(x):
 
 
 def compute_dnsmos_process(est_speech):
+    # Apply loundness normalization
+    est_speech = apply_loudness_normalization(est_speech)
     return dnnmos_metric.compute_dnsmos(est_speech, fs=16000)
 
 
@@ -139,6 +146,9 @@ opt = torch.optim.Adam(student.parameters(), lr=hparams['learning_rate'])
 
 initial_seed = 17
 
+fs = 16000
+meter = pyln.Meter(fs)
+    
 tr_step = 0
 val_step = 0
 sum_loss = 0.
@@ -285,9 +295,7 @@ for i in range(hparams['n_epochs']):
                         student_estimates, input_mix_std, input_mix_mean, input_mix, hparams)
 
                     s_est_speech = student_estimates[:, 0].detach().cpu().numpy()
-                    s_est_speech -= s_est_speech.mean(-1, keepdims=True)
-                    s_est_speech /= np.abs(s_est_speech).max(-1, keepdims=True) + 1e-9
-
+            
                     # Parallelize the DNS-MOS computation.
                     num_of_workers = max(os.cpu_count() // (hparams["n_jobs"] * 2), 1)
                     with Pool(num_of_workers) as p:
