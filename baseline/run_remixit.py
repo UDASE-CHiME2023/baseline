@@ -58,7 +58,7 @@ def freeze_model(model):
 
 def apply_loudness_normalization(s_est_speech, target_lufs = -30.0):
     s_est_speech = s_est_speech.squeeze()
-    # Peak normalization to 0.7, just to make sure that clipping does not happen after loundness normalization.
+    # Peak normalization to 0.7, just to make sure that clipping does not happen after loudness normalization
     s_est_speech -= s_est_speech.mean()
     s_est_speech /= np.abs(s_est_speech).max() + 1e-9
     s_est_speech *= 0.7
