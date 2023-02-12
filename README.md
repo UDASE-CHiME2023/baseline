@@ -29,20 +29,24 @@ We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (
     $$\theta\_{\mathcal{T}}^{(j+1)} = \gamma \theta\_{\mathcal{T}}^{(j)} + (1 - \gamma) \theta\_{\mathcal{S}}^{(j)}$$
     
     **[Checkpoints](pretrained_checkpoints):**
-    - We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS ```remixit_chime_adapted_student.pt```. 
-    - When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_using_vad.pt```. 
-    - A final student where we update the teacher only every 10 epochs and set $\gamma=0.$ (which is essentially the same as a sequentially updated teacher protocol) is also provided in ```remixit_chime_adapted_student_static_teacher_ep_33.pt``` which is chosen based on the highest performing model (33 epochs), in terms of SI-SNR, on the Libri1to3CHiME data with 1 speaker active. We train this student model with an initial learning rate of 0.0001 and decreasing it to a third of its value every 10 epochs.
+    - Fully-supervised out-of-domain teacher model: ```libri1to3mix_supervised_teacher_w_mixconsist.pt```. 
+    - We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest mean overall MOS as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student.pt```. 
+    - When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest mean overall MOS as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_using_vad.pt```. 
 
 ## Table of contents
 
-- [Datasets Generation](#datasets-generation)
-- [Repo and paths Configurations](#repo-and-paths-configurations)
-- [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
-- [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
-- [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
-- [Instructions for performance evaluation](#instructions-for-performance-evaluation)
-- [Baseline performance](#baseline-performance)
-- [References](#references)
+- [Baselines for the UDASE task of the CHiME-7 challenge](#baselines-for-the-udase-task-of-the-chime-7-challenge)
+  - [Table of contents](#table-of-contents)
+  - [Datasets generation](#datasets-generation)
+  - [Repo and paths configurations](#repo-and-paths-configurations)
+  - [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
+  - [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
+  - [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
+  - [Instructions for performance evaluation](#instructions-for-performance-evaluation)
+  - [Baseline performance](#baseline-performance)
+    - [Reverberant LibriCHiME-5 dataset](#reverberant-librichime-5-dataset)
+    - [Single-speaker segments of the CHiME-5 dataset](#single-speaker-segments-of-the-chime-5-dataset)
+  - [References](#references)
 
 ## Datasets generation
 Two datasets are required for generation, namely, Libri3mix and CHiME-5.
@@ -166,7 +170,37 @@ estimates = mixture_consistency.apply(estimates, input_mix)
 
 ## Instructions for performance evaluation
 
-The evaluation script for computing the DNS-MOS and SI-SDR metrics is `./baseline/utils/final_evaluation.py`.
+**Participants are asked to normalize their signals to -30 LUFS before computing the DNS-MOS performance scores. The same normalization should be applied to the submitted audio signals** (see [Submission](https://www.chimechallenge.org/current/task2/submission) section of the UDASE task website). 
+
+The motivation for this normalization is that DNS-MOS (especially the SIG and BAK scores) is very sensitive to a change of the input signal loudness. This sensitivity to the overall signal loudness would make it difficult to compare different systems without a common normalization procedure. 
+
+Regarding the listening tests, we do not want to evaluate the overall gain of the submitted systems, which is the reason why we also ask participants to normalize the submitted signals.
+
+The value of -30 LUFS for the normalized loudness was chosen to avoid clipping of most of the unprocessed mixture signals in the CHiME-5 dataset. In the dev set, less than 2% of the unprocessed mixtures clip after loudness normalization to -30 LUFS. In the eval set, none of the unprocessed mixtures will clip after loudness normalization to -30 LUFS. Clipping of the CHiME-5 mixtures seems to be mostly due to friction-like noise caused by manipulations/movements of the in-ear binaural microphone worn by the participants of the CHiME-5 dinner parties.
+
+We suggest to use [Pyloudnorm](https://github.com/csteinmetz1/pyloudnorm) for loudness normalization to -30 LUFS. An example code is given below.
+
+```python 
+import soundfile as sf
+import pyloudnorm as pyln
+
+x, sr = sf.read("test.wav") # load audio
+
+# peak normalize to an arbitrary value, e.g. 0.7
+# this might be necessary before computing the loudness, to avoid -inf
+x = x/np.max(np.abs(x))*0.7 
+
+# measure the loudness 
+meter = pyln.Meter(sr) # create loudness meter
+loudness = meter.integrated_loudness(x)
+
+# loudness normalize to -30 LUFS
+x_norm = pyln.normalize.loudness(x, loudness, -30.0)
+```
+
+An evaluation script for computing the DNS-MOS and SI-SDR metrics is available at `./baseline/utils/final_evaluation.py`.
+
+
 
 ## Baseline performance
 
@@ -174,26 +208,24 @@ The average SI-SDR values (in dB) over the dev set of LibriCHiME-5 (1-3 speakers
 
 ### Reverberant LibriCHiME-5 dataset
 
-|                       Mean                           | SI-SDR (dB) | 
+| Mean                                                 | SI-SDR (dB) |
 | ---------------------------------------------------- | ----------- |
-| unprocessed                                          |     6.57    |
-| Sudo rm -rf (fully-supervised out-of-domain teacher) |     8.23    |
-| RemixIT (self-supervised student)                    |     9.46    |
-| RemixIT (self-supervised student) using VAD          |     9.83    |
+| unprocessed                                          | 6.57        |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) | 8.23        |
+| RemixIT (self-supervised student)                    | 9.46        |
+| RemixIT (self-supervised student) using VAD          | **9.83**    |
 
 ### Single-speaker segments of the CHiME-5 dataset
 
-|                        Mean                          | OVR-MOS | BAK-MOS | SIG-MOS |
-| ---------------------------------------------------- | ------- | ------- | ------- |
-| unprocessed                                          |   3.03  |   3.04  |   3.64  |
-| Sudo rm -rf (fully-supervised out-of-domain teacher) |   3.08  |   3.79  |   3.48  |
-| RemixIT (self-supervised student)                    |   3.07  |   3.84  |   3.43  |
-| RemixIT (self-supervised student) using VAD          |   3.09  |   3.85  |   3.46  |
+| Mean                                                 | OVR-MOS  | BAK-MOS  | SIG-MOS  |
+| ---------------------------------------------------- | -------- | -------- | -------- |
+| unprocessed                                          | 3.03     | 3.04     | **3.64** |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) | 3.08     | 3.79     | 3.48     |
+| RemixIT (self-supervised student)                    | 3.07     | 3.84     | 3.43     |
+| RemixIT (self-supervised student) using VAD          | **3.09** | **3.85** | 3.46     |
 
 
 ## References
-
-Initial repo: https://github.com/etzinis/unsup_speech_enh_adaptation/
 
 [1] Tzinis, E., Wang, Z., & Smaragdis, P. (2020, September). Sudo rm-rf: Efficient networks for universal audio source separation. In 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP). <https://arxiv.org/abs/2007.06833>
 
