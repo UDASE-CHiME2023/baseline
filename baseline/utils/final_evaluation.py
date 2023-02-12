@@ -18,6 +18,7 @@ import os
 import baseline.utils.mixture_consistency as mixture_consistency
 import baseline.models.improved_sudormrf as improved_sudormrf
 import baseline.metrics.dnnmos_metric as dnnmos_metric
+import baseline.metrics.sisdr_metric as sisdr_metric
 import baseline.dataset_loaders.chime as chime
 import baseline.dataset_loaders.libri1to3chime as libri1to3chime
 
@@ -55,9 +56,15 @@ def get_args():
         help="""Whether to evaluate on the input mixture only.""",
         default=False,
     )
+    parser.add_argument(
+        "--si_sdr_librichime",
+        action="store_true",
+        help="""Compute SI-SDR metric on the LibriCHiME dev set.""",
+        default=False,
+    )
     return parser.parse_args()
 
-
+# For DNS-MOS computations, fixed_n_sources = 1, i.e., only 1-speaker files
 def get_librichime_generator():
     data_loader = libri1to3chime.Dataset(
         sample_rate=16000, fixed_n_sources=1,
@@ -117,6 +124,8 @@ if __name__ == "__main__":
             "sig_mos": [],
             "bak_mos": [],
             "ovr_mos": [],
+            "si_sdr":  [],
+            "si_sdri": [],
     }
     gen_len = len(test_generator)
     with torch.no_grad():
@@ -147,26 +156,40 @@ if __name__ == "__main__":
                 student_estimates = mixture_consistency.apply(student_estimates, input_mix)
 
                 s_est_speech = student_estimates[0, 0, :file_length].detach().cpu().numpy().squeeze()
+                
+            # SI-SDR on dev set of LibriCHiME
+            if hparams['si_sdr_librichime'] and flag:
+                gt_speaker_mix = gt_speaker_mix.cpu().numpy().squeeze()
+                si_sdr = sisdr_metric.compute_sisdr(s_est_speech, gt_speaker_mix)
 
-            # Peak normalization to 0.7, just to make sure we don't get loudness=-inf
-            s_est_speech -= s_est_speech.mean()
-            s_est_speech /= np.abs(s_est_speech).max() + 1e-9
-            s_est_speech *= 0.7
-                               
-            # Loudness normalization to LUFS = -30:
-            loudness = meter.integrated_loudness(s_est_speech)
-            s_est_speech = pyln.normalize.loudness(s_est_speech, loudness, -30.0)
-            
-            dnsmos_res_dic = dnnmos_metric.compute_dnsmos(s_est_speech, fs=16000)
-            for k, v in dnsmos_res_dic.items():
-                res_dic[k].append(v)
-            ovrl_mos_avg = round(np.mean(res_dic["ovr_mos"]), 2)
-            bak_mos_avg = round(np.mean(res_dic["bak_mos"]), 2)
-            sig_mos_avg = round(np.mean(res_dic["sig_mos"]), 2)
-            test_tqdm_gen.set_description(
-                f"Avg OVRL MOS: {ovrl_mos_avg}, BAK: {bak_mos_avg}, SIG: {sig_mos_avg} {j}/{gen_len}")
+                si_sdri = si_sdr - sisdr_metric.compute_sisdr(
+                    input_mix[0, 0, :file_length].cpu().numpy().squeeze(), gt_speaker_mix)
+
+                res_dic["si_sdr"].append(si_sdr)
+                res_dic["si_sdri"].append(si_sdri)
+            else:    
+                # Peak normalization to 0.7
+                s_est_speech -= s_est_speech.mean()
+                s_est_speech /= np.abs(s_est_speech).max() + 1e-9
+                s_est_speech *= 0.7
+
+                # Loudness normalization to LUFS = -30:
+                loudness = meter.integrated_loudness(s_est_speech)
+                s_est_speech = pyln.normalize.loudness(s_est_speech, loudness, -30.0)
+
+
+                # DNS-MOS
+                dnsmos_res_dic = dnnmos_metric.compute_dnsmos(s_est_speech, fs=16000)
+                for k, v in dnsmos_res_dic.items():
+                    res_dic[k].append(v)
+                ovrl_mos_avg = round(np.mean(res_dic["ovr_mos"]), 2)
+                bak_mos_avg = round(np.mean(res_dic["bak_mos"]), 2)
+                sig_mos_avg = round(np.mean(res_dic["sig_mos"]), 2)
+                test_tqdm_gen.set_description(
+                    f"Avg OVRL MOS: {ovrl_mos_avg}, BAK: {bak_mos_avg}, SIG: {sig_mos_avg} {j}/{gen_len}")
 
     aggregate_results = {}
+    
     for k, values in res_dic.items():
         mean_metric = np.mean(values)
         median_metric = np.median(values)
