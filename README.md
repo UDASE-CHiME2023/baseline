@@ -29,8 +29,8 @@ We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (
     $$\theta\_{\mathcal{T}}^{(j+1)} = \gamma \theta\_{\mathcal{T}}^{(j)} + (1 - \gamma) \theta\_{\mathcal{S}}^{(j)}$$
     
     **[Checkpoints](pretrained_checkpoints):**
-    - We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS (35 epochs) ```remixit_chime_adapted_student_besmos_ep35.pt```. 
-    - When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_bestbak_ep85_using_vad.pt```. 
+    - We train the student models with the EMA teacher protocol update with an initial learning rate of 0.0003 and decreasing it to a third of its value every 10 epochs. We pick the student model chekpoint with the highest scoring mean overall mos as computed by the DNS-MOS ```remixit_chime_adapted_student.pt```. 
+    - When training with the CHiME-5 data automatically annotated with Brouhaha's VAD (potentially all training mixtures would contain at least one active speaker), we choose the checkpoint with the highest performing mean BAK_MOS (85 epochs) as computed by DNS-MOS on the dev set ```remixit_chime_adapted_student_using_vad.pt```. 
     - A final student where we update the teacher only every 10 epochs and set $\gamma=0.$ (which is essentially the same as a sequentially updated teacher protocol) is also provided in ```remixit_chime_adapted_student_static_teacher_ep_33.pt``` which is chosen based on the highest performing model (33 epochs), in terms of SI-SNR, on the Libri1to3CHiME data with 1 speaker active. We train this student model with an initial learning rate of 0.0001 and decreasing it to a third of its value every 10 epochs.
 
 ## Table of contents
@@ -166,29 +166,29 @@ estimates = mixture_consistency.apply(estimates, input_mix)
 
 ## Instructions for performance evaluation
 
-Coming soon.
+The evaluation script for computing the DNS-MOS and SI-SDR metrics is `./baseline/utils/final_evaluation.py`.
 
 ## Baseline performance
 
-Coming soon.
+The average SI-SDR values (in dB) over the dev set of LibriCHiME-5 (1-3 speakers), as well as the DNS-MOS values over the dev set of CHiME-5 (1 speaker), for the unprocessed inputs, pretrained teacher and students models, are given in the following tables.
 
 ### Reverberant LibriCHiME-5 dataset
 
-|                                                      | SI-SDR (dB) | OVR_MOS | BAK_MOS | SIG_MOS |
-| ---------------------------------------------------- | ----------- | ------- | ------- | ------- |
-| unprocessed                                          |             |         |         |         |
-| Sudo rm -rf (fully-supervised out-of-domain teacher) |             |         |         |         |
-| RemixIT (self-supervised student)                    |             |         |         |         |
-| RemixIT (self-supervised student) using VAD          |             |         |         |         |
+|                       Mean                           | SI-SDR (dB) | 
+| ---------------------------------------------------- | ----------- |
+| unprocessed                                          |     6.57    |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) |     8.23    |
+| RemixIT (self-supervised student)                    |     9.46    |
+| RemixIT (self-supervised student) using VAD          |     9.83    |
 
 ### Single-speaker segments of the CHiME-5 dataset
 
-|                        Mean                          | OVR_MOS | BAK_MOS | SIG_MOS |
+|                        Mean                          | OVR-MOS | BAK-MOS | SIG-MOS |
 | ---------------------------------------------------- | ------- | ------- | ------- |
-| unprocessed                                          |         |         |         |
-| Sudo rm -rf (fully-supervised out-of-domain teacher) |         |         |         |
-| RemixIT (self-supervised student)                    |         |         |         |
-| RemixIT (self-supervised student) using VAD          |         |         |         |
+| unprocessed                                          |   3.03  |   3.04  |   3.64  |
+| Sudo rm -rf (fully-supervised out-of-domain teacher) |   3.08  |   3.79  |   3.48  |
+| RemixIT (self-supervised student)                    |   3.07  |   3.84  |   3.43  |
+| RemixIT (self-supervised student) using VAD          |   3.09  |   3.85  |   3.46  |
 
 
 ## References
