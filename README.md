@@ -1,7 +1,5 @@
 # Baselines for the UDASE task of the CHiME-7 challenge
 
-**WARNING: We are still modifying the baseline, if you are interested in entering the UDASE task please check regularly the changes in this repository.**
-
 We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [3] method on the unlabeled CHiME-5 data.
 
 **Fully-supervised Sudo rm -rf out-of-domain teacher**
@@ -153,7 +151,7 @@ model = improved_sudormrf.SuDORMRF(
         num_sources=2,
     )
 # You can load the state_dict as here:
-model.load_state_dict(torch.load('.../pretrained_checkpoints/remixit_chime_adapted_student_bestbak_ep85_using_vad.pt'))
+model.load_state_dict(torch.load('.../pretrained_checkpoints/remixit_chime_adapted_student_using_vad.pt'))
 model = torch.nn.DataParallel(model).cuda()
 
 # Scale the input mixture, perform inference and apply mixture consistency
