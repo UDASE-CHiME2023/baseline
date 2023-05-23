@@ -15,7 +15,7 @@ python eval.py --run-baseline --model remixit-vad
 # evaluate the 'remixit-vad' baseline results on CHiME-5, 
 # reverberant LibriCHiME-5, and Librimix, and compute the performance scores
 # on the unprocessed input signals.
-python eval.py --eval-baseline --input-scores remixit-vad
+python eval.py --eval-baseline --input-scores --model remixit-vad
 
 -------------
 
