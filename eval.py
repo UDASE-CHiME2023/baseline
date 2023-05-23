@@ -121,47 +121,62 @@ def normalize(x, target_loudness=-30, meter=None, sr=16000):
     return x_norm
 
 
-def run_baseline(checkpoint, output_path, 
-                 chime5_input_path, 
-                 chime5_subsets, 
-                 reverberant_librichime5_input_path, 
-                 reverberant_librichime5_subsets,
-                 librimix_input_path,
-                 librimix_subsets,
+def run_baseline(checkpoint, 
+                 output_path, 
+                 datasets=['chime-5', 'reverberant-librichime-5', 'librimix'],
+                 chime5_input_path=None, 
+                 chime5_subsets=['eval/1'], 
+                 reverberant_librichime5_input_path=None, 
+                 reverberant_librichime5_subsets=['eval/1', 'eval/2', 'eval/3'],
+                 librimix_input_path=None,
+                 librimix_subsets=['Libri2Mix/wav16k/max/test/mix_single', 
+                                   'Libri2Mix/wav16k/max/test/mix_both',
+                                   'Libri3Mix/wav16k/max/test/mix_both'],
                  save_mix=False, 
                  save_noise=False):
     
     """
-    Script to run the baseline on the CHiME-5, Reverberant LibriCHiME-5, and
+    Run the baseline on the CHiME-5, Reverberant LibriCHiME-5, and/or
     LibriMix datasets. 
     
-    You must set the variables in configuration section of this file before 
-    calling this function.
-
     Parameters
     ----------
     checkpoint : string
         Path to the baseline model checkpoint.
     output_path : string
-        Path to save the results (output signals).
-    chime5_input_path : string
+        Path to save the output signals.
+    datasets : list of string, optional
+        The list of the datasets to process. Each element of this list should be
+        either 'chime-5', 'reverberant-librichime-5', or 'librimix'.        
+        If a dataset is in the list (e.g., 'chime-5'), the other input 
+        variables associated with this dataset should be appropriately set 
+        (e.g., 'chime5_input_path' and 'chime5_subsets').
+    chime5_input_path : string, optional
         Path to the (preprocessed) CHiME-5 dataset (as provided for the UDASE task).
-    chime5_subsets : list of string
+        Default: None
+    chime5_subsets : list of string, optional
         Subsets of the CHiME-5 dataset to process.
-    reverberant_librichime5_input_path : string
+        Default: ['eval/1']
+    reverberant_librichime5_input_path : string, optional
         Path to the reverberant LibriCHiME-5 dataset.
-    reverberant_librichime5_subsets : list of string
+        Default: None
+    reverberant_librichime5_subsets : list of string, optional
         Subsets of the reverberant LibriCHiME-5 dataset to process.
-    librimix_input_path : string
+        Default: ['eval/1', 'eval/2', 'eval/3']
+    librimix_input_path : string, optional
         Path to the reverberant LibriMix dataset.
-    librimix_subsets : list of string
+        Default: None
+    librimix_subsets : list of string, optional
         Subsets of theLibriMix dataset to process.
+        Default: ['Libri2Mix/wav16k/max/test/mix_single', 
+                 'Libri2Mix/wav16k/max/test/mix_both',
+                 'Libri3Mix/wav16k/max/test/mix_both']
     save_mix : boolean, optional
         Boolean indicating if the input noisy mixture signal should be saved. 
-        The default is False.
+        Default: False.
     save_noise : boolean, optional
         Boolean indicating if the estimated noise signal should be saved. 
-        The default is False.
+        Default: False.
     
     Returns
     -------
@@ -192,9 +207,7 @@ def run_baseline(checkpoint, output_path,
     model = torch.nn.DataParallel(model).cuda()
     model.eval()
 
-    # process datasets
-
-    datasets = ['chime-5', 'reverberant-librichime-5', 'librimix']
+    # process datasets   
 
     for dataset in datasets:
         
@@ -230,8 +243,17 @@ def run_baseline(checkpoint, output_path,
                 file_name = os.path.basename(mix_file)
                 file_name = os.path.splitext(file_name)[0]
                 
-                # Scale the input mixture
-                input_mix, _ = torchaudio.load(mix_file) # audio file should be mono channel
+                # Load the mixture
+                mixture, _ = torchaudio.load(mix_file) # audio file should be mono channel
+                
+                # Pad the mixture
+                file_length = mixture.shape[-1]
+                min_k = int(np.ceil(np.log2(file_length/16000)))
+                padded_length = 2**max(min_k, 1) * 16000
+                input_mix = torch.zeros((1, padded_length), dtype=mixture.dtype)
+                input_mix[..., :file_length] = mixture
+                
+                # Scale the mixture
                 input_mix = input_mix.unsqueeze(1).cuda() 
                 input_mix_std = input_mix.std(-1, keepdim=True)
                 input_mix_mean = input_mix.mean(-1, keepdim=True)
@@ -242,21 +264,28 @@ def run_baseline(checkpoint, output_path,
                     estimates = model(input_mix)
                     estimates = mixture_consistency.apply(estimates, input_mix)
             
-                # Unscale the input mixture and estimates
-                input_mix = input_mix*(input_mix_std + 1e-9) + input_mix_mean
-                estimates = estimates*(input_mix_std + 1e-9) + input_mix_mean
+                # Unscale the mixture and estimates
+                # input_mix = input_mix*(input_mix_std + 1e-9) + input_mix_mean
+                # estimates = estimates*(input_mix_std + 1e-9) + input_mix_mean
             
-                input_mix = input_mix.cpu().numpy().squeeze()
-                estimates = estimates.cpu().numpy().squeeze()
-                speech_est = estimates[0,:]
-                noise_est = estimates[1,:]
+                # Cut the mixture and estimates to original length (before padding)
+                speech_est = estimates[0, 0, :file_length].cpu().numpy().squeeze()
+                if save_noise:
+                    noise_est = estimates[0, 1, :file_length].cpu().numpy().squeeze()
+                if save_mix:
+                    input_mix = input_mix[0, 0, :file_length].cpu().numpy().squeeze()
             
-                # normalize to -30 LUFS
+                # Normalize to -30 LUFS. This is only mandatory for the CHiME-5 
+                # dataset (to compute DNS-MOS and for listening tests), but it
+                # should not affect the SI-SDR results on other datasets as
+                # the SI-SDR is scale invariant.
                 speech_est = normalize(speech_est, target_loudness=-30, meter=meter, sr=16000)
-                noise_est = normalize(noise_est, target_loudness=-30, meter=meter, sr=16000)
-                input_mix = normalize(input_mix, target_loudness=-30, meter=meter, sr=16000)
+                if save_noise:
+                    noise_est = normalize(noise_est, target_loudness=-30, meter=meter, sr=16000)
+                if save_mix:    
+                    input_mix = normalize(input_mix, target_loudness=-30, meter=meter, sr=16000)
                 
-                # save
+                # Save
                 if dataset == 'chime-5' or dataset == 'librimix':
                     mix_id = file_name
                 elif dataset == 'reverberant-librichime-5':
@@ -718,13 +747,15 @@ if __name__ == "__main__":
     
     # run baseline
     if args.run_baseline:
-        run_baseline(checkpoint, output_path,
-                     chime5_input_path, 
-                     chime5_subsets, 
-                     reverberant_librichime5_input_path, 
-                     reverberant_librichime5_subsets,
-                     librimix_input_path,
-                     librimix_subsets)
+        run_baseline(checkpoint=checkpoint, 
+                     output_path=output_path,
+                     datasets=['chime-5', 'reverberant-librichime-5', 'librimix'],
+                     chime5_input_path=chime5_input_path, 
+                     chime5_subsets=chime5_subsets, 
+                     reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
+                     reverberant_librichime5_subsets=reverberant_librichime5_subsets,
+                     librimix_input_path=librimix_input_path,
+                     librimix_subsets=librimix_subsets)
     
     # compute scores
     if args.eval_baseline and args.input_scores:
