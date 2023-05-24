@@ -672,10 +672,10 @@ def summarize_results():
                                           'OVR_MOS'])
 
     df_reverberant_librichime5_all = pd.DataFrame(columns=['model','SI-SDR'])
-    df_reverberant_librimix_all = pd.DataFrame(columns=['model','SI-SDR'])
+    df_librimix_all = pd.DataFrame(columns=['model','SI-SDR'])
 
     df_all_list = [df_chime5_all, df_reverberant_librichime5_all, 
-                   df_reverberant_librimix_all]
+                   df_librimix_all]
 
     for dataset, df_all in zip(datasets, df_all_list):
         
