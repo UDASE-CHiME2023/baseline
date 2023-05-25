@@ -2,6 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
+
+See the description of the functions 'run_baseline' and 'compute_metrics' below
+for information. 
+
+The function 'compute_metrics' is independent of the baseline system, you
+may use it to report the results of your system for the UDASE task of CHiME-7.
+
 Example usage
 -------------
 
@@ -9,7 +16,7 @@ Example usage
 # 'output_path', 'chime5_input_path', 'reverberant_librichime5_input_path',
 # 'librimix_input_path'.
 
-# run the 'remixit-vad' baseline on CHiME-5, reverberant LibriCHiME-5, Librimix
+# run the 'remixit-vad' baseline on CHiME-5, reverberant LibriCHiME-5, Librimix:
 python eval.py --run-baseline --model remixit-vad
 
 # evaluate the 'remixit-vad' baseline results on CHiME-5, 
@@ -17,13 +24,6 @@ python eval.py --run-baseline --model remixit-vad
 # on the unprocessed input signals.
 python eval.py --eval-baseline --input-scores --model remixit-vad
 
--------------
-
-See the description of the functions 'run_baseline' and 'compute_metrics' below
-for more information. 
-
-The function 'compute_metrics' is independent of the baseline system, you
-may use it to report the results of your system for the UDASE task of CHiME-7.
 """
 
 #%% configuration
@@ -136,8 +136,7 @@ def run_baseline(checkpoint,
                  save_noise=False):
     
     """
-    Run the baseline on the CHiME-5, Reverberant LibriCHiME-5, and/or
-    LibriMix datasets. 
+    Run the baseline model of the CHiME-7 UDASE task.
     
     Parameters
     ----------
@@ -264,10 +263,6 @@ def run_baseline(checkpoint,
                     estimates = model(input_mix)
                     estimates = mixture_consistency.apply(estimates, input_mix)
             
-                # Unscale the mixture and estimates
-                # input_mix = input_mix*(input_mix_std + 1e-9) + input_mix_mean
-                # estimates = estimates*(input_mix_std + 1e-9) + input_mix_mean
-            
                 # Cut the mixture and estimates to original length (before padding)
                 speech_est = estimates[0, 0, :file_length].cpu().numpy().squeeze()
                 if save_noise:
@@ -347,7 +342,7 @@ def compute_metrics(results_path,
     - For reverberant LibriCHiME-5, the output signal corresponding to the input signal
     <mix ID>_mix.wav should be named <mix ID>_output.wav. For example, the 
     output signal <results_path>/reverberant-LibriCHiME-5/eval/1/S01_P01_0a_output.wav
-    corresponds to the input signal at <reverberant_librichime5_input_path>/eval/1/S01_P01_0a_mix.wav
+    corresponds to the input signal <reverberant_librichime5_input_path>/eval/1/S01_P01_0a_mix.wav
     - For LibriMix, the output signal corresponding to the input signal
     <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
     output signal <results_path>/LibriMix/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012_output.wav
@@ -388,7 +383,6 @@ def compute_metrics(results_path,
         Path to the reverberant LibriMix dataset.
     librimix_subsets : list of string, optional
         Subsets of theLibriMix dataset to process.
-    
     compute_input_scores : boolean, optional
         Boolean indicating if the metrics should also be computed on the 
         input unprocessed noisy speech signal. The default is False.
@@ -660,61 +654,7 @@ def compute_metrics(results_path,
         if compute_input_scores:        
             csv_file = os.path.join(librimix_output_path, 'results_unprocessed.csv')
             unprocessed_librimix_df.to_csv(csv_file)
-            
-def summarize_results():
-    
-    models = ['sudo-rm-rf', 'remixit', 'remixit-vad']
-    datasets = ['CHiME-5', 'reverberant-LibriCHiME-5', 'LibriMix']
 
-    df_chime5_all = pd.DataFrame(columns=['model', 
-                                          'SIG_MOS', 
-                                          'BAK_MOS', 
-                                          'OVR_MOS'])
-
-    df_reverberant_librichime5_all = pd.DataFrame(columns=['model','SI-SDR'])
-    df_librimix_all = pd.DataFrame(columns=['model','SI-SDR'])
-
-    df_all_list = [df_chime5_all, df_reverberant_librichime5_all, 
-                   df_librimix_all]
-
-    for dataset, df_all in zip(datasets, df_all_list):
-        
-        for model in models:
-            
-            results_path = os.path.join(output_path, model, dataset)
-            
-            # unprocessed (input) results
-            if os.path.isfile(os.path.join(results_path, 'results_unprocessed.csv')):
-                
-                df_unprocessed = pd.read_csv(os.path.join(results_path, 
-                                                          'results_unprocessed.csv'))
-                
-                if dataset == 'CHiME-5':
-                    row = ['unprocessed', np.mean(df_unprocessed['SIG_MOS']), 
-                           np.mean(df_unprocessed['BAK_MOS']), 
-                           np.mean(df_unprocessed['OVR_MOS'])]
-                else:
-                    row = ['unprocessed', np.mean(df_unprocessed['SI-SDR'])]
-                    
-                df_all.loc[len(df_all)] = row
-            
-            
-            # model results
-            df = pd.read_csv(os.path.join(results_path, 'results.csv'))
-            if dataset == 'CHiME-5':
-                row = [model, np.mean(df['SIG_MOS']), np.mean(df['BAK_MOS']), 
-                       np.mean(df['OVR_MOS'])]
-            else:
-                row = [model, np.mean(df['SI-SDR'])]
-            
-            df_all.loc[len(df_all)] = row
-
-        print(dataset)
-        print(df_all)
-        print('\n')
-        
-        
-    
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
@@ -747,6 +687,7 @@ if __name__ == "__main__":
     
     # run baseline
     if args.run_baseline:
+        
         run_baseline(checkpoint=checkpoint, 
                      output_path=output_path,
                      datasets=['chime-5', 'reverberant-librichime-5', 'librimix'],
@@ -759,6 +700,7 @@ if __name__ == "__main__":
     
     # compute scores
     if args.eval_baseline and args.input_scores:
+        
         compute_metrics(results_path=output_path,
                         chime5_input_path=chime5_input_path, 
                         chime5_subsets=chime5_subsets, 
@@ -767,7 +709,9 @@ if __name__ == "__main__":
                         librimix_input_path=librimix_input_path,
                         librimix_subsets=librimix_subsets, 
                         compute_input_scores=True)
+        
     elif args.eval_baseline:
+        
         compute_metrics(results_path=output_path,
                         chime5_input_path=chime5_input_path, 
                         chime5_subsets=chime5_subsets, 
