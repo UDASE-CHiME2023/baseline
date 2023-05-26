@@ -3,8 +3,7 @@
 
 """
 
-See the description of the functions 'run_baseline' and 'compute_metrics' below
-for information. 
+See the description of the functions 'run_baseline' and 'compute_metrics'. 
 
 The function 'compute_metrics' is independent of the baseline system, you
 may use it to report the results of your system for the UDASE task of CHiME-7.
@@ -26,25 +25,17 @@ python eval.py --eval-baseline --input-scores --model remixit-vad
 
 """
 
-#%% configuration
-
-"""
-You must set the following variables:
-    - output_path
-    - chime5_input_path
-    - reverberant_librichime5_input_path
-    - librimix_input_path
-"""
-
 # output path to store the results of the baseline
-output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results'
+output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results_new'
 
 ######## Config for the CHiME-5 dataset of the UDASE task ########
 
 # path to the input data
 chime5_input_path = '/data2/datasets/UDASE-CHiME2023/CHiME-5'
-# subsets to process and evaluate
-chime5_subsets = ['eval/1']
+# subsets to process
+chime5_subsets_run = ['eval/1', 'eval/listening_test']
+# subsets to evaluate
+chime5_subsets_eval = ['eval/1']
 
 ######## Config for the Reverberant LibriCHiME-5 dataset of the UDASE task ########
 
@@ -181,6 +172,8 @@ def run_baseline(checkpoint,
     -------
     None.
     """
+    
+    output_path = os.path.join(output_path, 'audio')
             
     sr = 16000
     meter = pyln.Meter(sr)
@@ -294,7 +287,7 @@ def run_baseline(checkpoint,
                     sf.write(os.path.join(curr_output_dir, mix_id + '_mix.wav'), input_mix, sr)    
 
 
-def compute_metrics(results_path,
+def compute_metrics(output_path,
                     chime5_input_path=None, 
                     chime5_subsets=None, 
                     reverberant_librichime5_input_path=None, 
@@ -305,72 +298,15 @@ def compute_metrics(results_path,
     """
     Script to compute the objective performance metrics for the UDASE task of 
     the CHiME-7 challenge.
-    
-    The directory defined by the input variable 'results_path'
-    should contain at least one of the three following folders: 
-    CHiME-5, LibriMix, reverberant-LibriCHiME-5. Each folder should follow 
-    the tree structure shown below.
-
-    <results_path>
-        ├── CHiME-5
-        │   └── eval
-        │       └── 1
-        ├── LibriMix
-        │   ├── Libri2Mix
-        │   │   └── wav16k
-        │   │       └── max
-        │   │           └── test
-        │   │               ├── mix_both
-        │   │               └── mix_single
-        │   └── Libri3Mix
-        │       └── wav16k
-        │           └── max
-        │               └── test
-        │                   └── mix_both
-        └── reverberant-LibriCHiME-5
-            └── eval
-                ├── 1
-                ├── 2
-                └── 3
-                
-    At each leaf of this tree, we have a directory that contains the output
-    wav files of the system. The naming convention is the following:
-    - For CHiME-5, the output signal corresponding to the input signal
-    <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
-    output signal <results_path>/CHiME-5/eval/1/S01_P01_0_output.wav 
-    corresponds to the input signal <chime5_input_path>/eval/1/S01_P01_0.wav
-    - For reverberant LibriCHiME-5, the output signal corresponding to the input signal
-    <mix ID>_mix.wav should be named <mix ID>_output.wav. For example, the 
-    output signal <results_path>/reverberant-LibriCHiME-5/eval/1/S01_P01_0a_output.wav
-    corresponds to the input signal <reverberant_librichime5_input_path>/eval/1/S01_P01_0a_mix.wav
-    - For LibriMix, the output signal corresponding to the input signal
-    <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
-    output signal <results_path>/LibriMix/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012_output.wav
-    corresponds to the input signal at <librimix_input_path>/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012.wav
         
-    To compute the results for a given dataset X with X in 
-    (chime5, reverberant_librichime5, librimix), you should set the input
-    variables 'X_input_path' and 'X_subsets' appropriately (see Parameters
-    section below). If 'X_input_path' and 'X_subsets' are set to None 
-    (default), results will not be computed for the dataset X.
-    
-    This function will save the objective performance results in a csv file 
-    'results.csv' located in the folder CHiME-5, LibriMix or 
-    reverberant-LibriCHiME-5 (in the above tree structure), depending on the 
-    dataset.
-    
-    If the input variable 'compute_input_scores' is set to True, an
-    additional csv file 'results_unprocessed.csv' will be saved at the same
-    location as 'results.csv'. It will contain the performance scores for the
-    unprocessed noisy speech signals.
-    
-    See Example Usage below.
+    See Example Usage below for detailed information.
 
     Parameters
     ----------
     
-    results_path : string
-        Path where the results (output signals) are saved.
+    output_path : string
+        Path where the results (output signals) are saved. 
+        See Example usage for more details.
     chime5_input_path : string, optional
         Path to the (preprocessed) CHiME-5 dataset (as provided for the UDASE task).
     chime5_subsets : list of string, optional
@@ -394,40 +330,122 @@ def compute_metrics(results_path,
     Example usage
     -------------
     
-    # path to the baseline output signals
-    results_path = '/data2/datasets/UDASE-CHiME2023/baseline_results/remixit-vad'
+    Assume the directory <output_path>/audio is structured as shown in the 
+    tree below.
 
-    ######## Config for the CHiME-5 dataset of the UDASE task ########
-
-    # path to the input data
-    chime5_input_path = '/data2/datasets/UDASE-CHiME2023/CHiME-5'
-    # subsets to process
-    chime5_subsets = ['eval/1']
-
-    ######## Config for the Reverberant LibriCHiME-5 dataset of the UDASE task ########
-
-    # path to the input data
-    reverberant_librichime5_input_path = '/data2/datasets/UDASE-CHiME2023/reverberant-LibriCHiME-5'
-    # subsets to process
-    reverberant_librichime5_subsets = ['eval/1', 'eval/2', 'eval/3']
-
-    ######## Config for the LibriMix dataset ########
-
-    # path to the input data
-    librimix_input_path = '/data/datasets/LibriMix'
-    # subsets to process
-    librimix_subsets = ['Libri2Mix/wav16k/max/test/mix_single', 
-                        'Libri2Mix/wav16k/max/test/mix_both',
-                        'Libri3Mix/wav16k/max/test/mix_both']
+    <output_path>/audio
+            │ 
+            ├── CHiME-5
+            │   └── eval
+            │       └── 1
+            ├── LibriMix
+            │   ├── Libri2Mix
+            │   │   └── wav16k
+            │   │       └── max
+            │   │           └── test
+            │   │               ├── mix_both
+            │   │               └── mix_single
+            │   └── Libri3Mix
+            │       └── wav16k
+            │           └── max
+            │               └── test
+            │                   └── mix_both
+            └── reverberant-LibriCHiME-5
+                └── eval
+                    ├── 1
+                    ├── 2
+                    └── 3
+                
+    At each leaf of this tree, we have a directory that contains the output
+    wav files of the system. 
     
-    compute_metrics(results_path=results_path,
-                    chime5_input_path=chime5_input_path, 
-                    chime5_subsets=chime5_subsets, 
-                    reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
-                    reverberant_librichime5_subsets=reverberant_librichime5_subsets,
-                    librimix_input_path=librimix_input_path,
-                    librimix_subsets=librimix_subsets, 
-                    compute_input_scores=True)
+    The mandatory naming convention for the wav files is the following:
+    - For CHiME-5, the output signal corresponding to the input signal
+    <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
+    output signal <output_path>/audio/CHiME-5/eval/1/S01_P01_0_output.wav 
+    corresponds to the input signal <chime5_input_path>/eval/1/S01_P01_0.wav
+    - For reverberant LibriCHiME-5, the output signal corresponding to the input signal
+    <mix ID>_mix.wav should be named <mix ID>_output.wav. For example, the 
+    output signal <output_path>/audio/reverberant-LibriCHiME-5/eval/1/S01_P01_0a_output.wav
+    corresponds to the input signal <reverberant_librichime5_input_path>/eval/1/S01_P01_0a_mix.wav
+    - For LibriMix, the output signal corresponding to the input signal
+    <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
+    output signal <output_path>/audio/LibriMix/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012_output.wav
+    corresponds to the input signal at <librimix_input_path>/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012.wav
+        
+    To compute the results for a given dataset D with D in 
+    (chime5, reverberant_librichime5, librimix), we should set the input
+    variables 'D_input_path' and 'D_subsets' appropriately (see Parameters
+    section above). If 'D_input_path' and 'D_subsets' are set to None 
+    (default), results will not be computed for the dataset D. 
+    
+    For the example directory shown above, we set the input variables as 
+    follows (this is just an example, of course you should adapt the paths):
+        
+        ##################
+        ## CHiME-5 data ##
+        ##################
+        
+        # path to the input data
+        chime5_input_path = '/data2/datasets/UDASE-CHiME2023/CHiME-5'
+        
+        # subsets to process
+        chime5_subsets = ['eval/1']
+        
+        ###################################
+        ## Reverberant LibriCHiME-5 data ##
+        ###################################
+        
+        # path to the input data
+        reverberant_librichime5_input_path = '/data2/datasets/UDASE-CHiME2023/reverberant-LibriCHiME-5'
+        
+        # subsets to process
+        reverberant_librichime5_subsets = ['eval/1', 'eval/2', 'eval/3']
+        
+        ###################
+        ## LibriMix data ##
+        ###################
+        
+        # path to the input data
+        librimix_input_path = '/data/datasets/LibriMix'
+        
+        # subsets to process
+        librimix_subsets = ['Libri2Mix/wav16k/max/test/mix_single', 
+                            'Libri2Mix/wav16k/max/test/mix_both',
+                            'Libri3Mix/wav16k/max/test/mix_both']
+    
+    After setting appropriately the variable 'output_path', for instance
+        
+        output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results_new/remixit-vad'
+        
+    we can call the 'compute_metrics' function:
+        
+        compute_metrics(output_path=output_path,
+                        chime5_input_path=chime5_input_path, 
+                        chime5_subsets=chime5_subsets, 
+                        reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
+                        reverberant_librichime5_subsets=reverberant_librichime5_subsets,
+                        librimix_input_path=librimix_input_path,
+                        librimix_subsets=librimix_subsets)
+    
+    This function will save the objective performance results in a csv file 
+    'results.csv' located in the folders CHiME-5, LibriMix or 
+    reverberant-LibriCHiME-5 at <output_path>/csv.
+    
+    If you only want to compute the results on the CHiME-5 dataset, then call:
+    
+        compute_metrics(output_path=output_path,
+                        chime5_input_path=chime5_input_path, 
+                        chime5_subsets=chime5_subsets, 
+                        reverberant_librichime5_input_path=None, 
+                        reverberant_librichime5_subsets=None,
+                        librimix_input_path=None,
+                        librimix_subsets=None)
+    
+    If the optional input variable 'compute_input_scores' is set to True, an
+    additional csv file 'results_unprocessed.csv' will be saved at the same
+    location as 'results.csv'. It will contain the performance scores for the
+    unprocessed noisy speech signals.
 
     """
         
@@ -440,7 +458,7 @@ def compute_metrics(results_path,
     
         print('Compute results on CHiME-5')
         
-        chime5_output_path = os.path.join(results_path, 'CHiME-5')
+        chime5_output_path = os.path.join(output_path, 'audio', 'CHiME-5')
         chime5_df = pd.DataFrame(columns=['subset', 
                                           'input_file_name', 
                                           'output_file_name', 
@@ -493,12 +511,16 @@ def compute_metrics(results_path,
                            dnsmos_res['bak_mos'], dnsmos_res['ovr_mos']]
                     
                     unprocessed_chime5_df.loc[len(unprocessed_chime5_df)] = row
-                    
-        csv_file = os.path.join(chime5_output_path, 'results.csv')
+        
+        csv_dir = os.path.join(output_path, 'csv', 'CHiME-5')
+        if not os.path.isdir(csv_dir):
+            os.makedirs(csv_dir)
+        csv_file = os.path.join(csv_dir, 'results.csv')
+        
         chime5_df.to_csv(csv_file)
         
         if compute_input_scores:
-            csv_file = os.path.join(chime5_output_path, 'results_unprocessed.csv')
+            csv_file = os.path.join(output_path, 'csv', 'CHiME-5', 'results_unprocessed.csv')
             unprocessed_chime5_df.to_csv(csv_file)    
         
     # Reverberant LibriCHiME-5
@@ -507,7 +529,8 @@ def compute_metrics(results_path,
         
         print('Compute results on Reverberant LibriCHiME-5')
         
-        reverberant_librichime5_output_path = os.path.join(results_path, 
+        reverberant_librichime5_output_path = os.path.join(output_path, 
+                                                           'audio', 
                                                            'reverberant-LibriCHiME-5')
         
         reverberant_librichime5_df = pd.DataFrame(columns=['subset', 
@@ -562,12 +585,17 @@ def compute_metrics(results_path,
                            os.path.basename(input_file), si_sdr]
                     
                     unprocessed_reverberant_librichime5_df.loc[len(unprocessed_reverberant_librichime5_df)] = row
-                    
-        csv_file = os.path.join(reverberant_librichime5_output_path, 'results.csv')
+        
+        csv_dir = os.path.join(output_path, 'csv', 'reverberant-LibriCHiME-5')
+        if not os.path.isdir(csv_dir):
+            os.makedirs(csv_dir)
+        csv_file = os.path.join(csv_dir, 'results.csv')
+        
         reverberant_librichime5_df.to_csv(csv_file)
     
         if compute_input_scores:     
-            csv_file = os.path.join(reverberant_librichime5_output_path, 'results_unprocessed.csv')
+            csv_file = os.path.join(output_path, 'csv', 'reverberant-LibriCHiME-5', 
+                                    'results_unprocessed.csv')
             unprocessed_reverberant_librichime5_df.to_csv(csv_file)
         
     # LibriMix
@@ -576,7 +604,7 @@ def compute_metrics(results_path,
     
         print('Compute results on LibriMix')
         
-        librimix_output_path = os.path.join(results_path, 'LibriMix')
+        librimix_output_path = os.path.join(output_path, 'audio', 'LibriMix')
         
         librimix_df = pd.DataFrame(columns=['subset', 
                                             'input_file_name', 
@@ -647,13 +675,19 @@ def compute_metrics(results_path,
                            os.path.basename(input_file), si_sdr]
                     
                     unprocessed_librimix_df.loc[len(unprocessed_librimix_df)] = row
-                    
-        csv_file = os.path.join(librimix_output_path, 'results.csv')
+
+        csv_dir = os.path.join(output_path, 'csv', 'LibriMix')
+        if not os.path.isdir(csv_dir):
+            os.makedirs(csv_dir)
+        csv_file = os.path.join(csv_dir, 'results.csv')
+                            
         librimix_df.to_csv(csv_file)
     
         if compute_input_scores:        
-            csv_file = os.path.join(librimix_output_path, 'results_unprocessed.csv')
+            csv_file = os.path.join(output_path, 'csv', 'LibriMix', 'results_unprocessed.csv')
             unprocessed_librimix_df.to_csv(csv_file)
+
+#%%
 
 if __name__ == "__main__":
     
@@ -692,7 +726,7 @@ if __name__ == "__main__":
                      output_path=output_path,
                      datasets=['chime-5', 'reverberant-librichime-5', 'librimix'],
                      chime5_input_path=chime5_input_path, 
-                     chime5_subsets=chime5_subsets, 
+                     chime5_subsets=chime5_subsets_run, 
                      reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
                      reverberant_librichime5_subsets=reverberant_librichime5_subsets,
                      librimix_input_path=librimix_input_path,
@@ -701,9 +735,9 @@ if __name__ == "__main__":
     # compute scores
     if args.eval_baseline and args.input_scores:
         
-        compute_metrics(results_path=output_path,
+        compute_metrics(output_path=output_path,
                         chime5_input_path=chime5_input_path, 
-                        chime5_subsets=chime5_subsets, 
+                        chime5_subsets=chime5_subsets_eval, 
                         reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
                         reverberant_librichime5_subsets=reverberant_librichime5_subsets,
                         librimix_input_path=librimix_input_path,
@@ -712,9 +746,9 @@ if __name__ == "__main__":
         
     elif args.eval_baseline:
         
-        compute_metrics(results_path=output_path,
+        compute_metrics(output_path=output_path,
                         chime5_input_path=chime5_input_path, 
-                        chime5_subsets=chime5_subsets, 
+                        chime5_subsets=chime5_subsets_eval, 
                         reverberant_librichime5_input_path=reverberant_librichime5_input_path, 
                         reverberant_librichime5_subsets=reverberant_librichime5_subsets,
                         librimix_input_path=librimix_input_path,
