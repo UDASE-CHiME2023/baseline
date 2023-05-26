@@ -371,13 +371,12 @@ def compute_metrics(output_path,
     - For LibriMix, the output signal corresponding to the input signal
     <mix ID>.wav should be named <mix ID>_output.wav. For example, the 
     output signal <output_path>/audio/LibriMix/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012_output.wav
-    corresponds to the input signal at <librimix_input_path>/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012.wav
+    corresponds to the input signal <librimix_input_path>/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012.wav
         
-    To compute the results for a given dataset D with D in 
-    (chime5, reverberant_librichime5, librimix), we should set the input
-    variables 'D_input_path' and 'D_subsets' appropriately (see Parameters
-    section above). If 'D_input_path' and 'D_subsets' are set to None 
-    (default), results will not be computed for the dataset D. 
+    To compute the results for a given dataset, we should set the input 
+    variables `*_input_path` and `*_subsets` appropriately (see Parameters 
+    section above). If '*_input_path' and '*_subsets' are set to None 
+    (default), results will not be computed for the corresponding dataset.
     
     For the example directory shown above, we set the input variables as 
     follows (this is just an example, of course you should adapt the paths):
@@ -432,7 +431,7 @@ def compute_metrics(output_path,
     'results.csv' located in the folders CHiME-5, LibriMix or 
     reverberant-LibriCHiME-5 at <output_path>/csv.
     
-    If you only want to compute the results on the CHiME-5 dataset, then call:
+    If for instance you only want to compute the results on the CHiME-5 dataset, then call:
     
         compute_metrics(output_path=output_path,
                         chime5_input_path=chime5_input_path, 
