@@ -1,5 +1,11 @@
 # Baselines for the UDASE task of the CHiME-7 challenge
 
+Updates:
+
+- [June 2, 2023] Added information in [Instructions for performance evaluation](#instructions-for-performance-evaluation).
+
+--- 
+
 We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (e.g. Libri1to3mix) and try to adapt a student model with the RemixIT [3] method on the unlabeled CHiME-5 data.
 
 **Fully-supervised Sudo rm -rf out-of-domain teacher**
@@ -33,18 +39,21 @@ We pre-train a supervised Sudo rm- rf [1,2] teacher on some out-of-domain data (
 
 ## Table of contents
 
--   [Baselines for the UDASE task of the CHiME-7 challenge](#baselines-for-the-udase-task-of-the-chime-7-challenge)
-    -   [Table of contents](#table-of-contents)
-    -   [Datasets generation](#datasets-generation)
-    -   [Repo and paths configurations](#repo-and-paths-configurations)
-    -   [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
-    -   [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
-    -   [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
-    -   [Instructions for performance evaluation](#instructions-for-performance-evaluation)
-    -   [Baseline performance](#baseline-performance)
-        -   [Reverberant LibriCHiME-5 dataset](#reverberant-librichime-5-dataset)
-        -   [Single-speaker segments of the CHiME-5 dataset](#single-speaker-segments-of-the-chime-5-dataset)
-    -   [References](#references)
+- [Baselines for the UDASE task of the CHiME-7 challenge](#baselines-for-the-udase-task-of-the-chime-7-challenge)
+  - [Table of contents](#table-of-contents)
+  - [Datasets generation](#datasets-generation)
+  - [Repo and paths configurations](#repo-and-paths-configurations)
+  - [How to train the supervised teacher](#how-to-train-the-supervised-teacher)
+  - [How to adapt the RemixIT student](#how-to-adapt-the-remixit-student)
+  - [How to load a pretrained checkpoint](#how-to-load-a-pretrained-checkpoint)
+  - [Instructions for performance evaluation](#instructions-for-performance-evaluation)
+    - [Loudness normalization](#loudness-normalization)
+    - [Computing the performance scores](#computing-the-performance-scores)
+    - [Evaluation file eval.py](#evaluation-file-evalpy)
+  - [Baseline performance](#baseline-performance)
+    - [Eval sets](#eval-sets)
+    - [Dev sets](#dev-sets)
+  - [References](#references)
 
 ## Datasets generation
 
@@ -212,13 +221,22 @@ loudness = meter.integrated_loudness(x)
 x_norm = pyln.normalize.loudness(x, loudness, -30.0)
 ```
 
+### Computing the performance scores
+
+**Participants are asked to use the following functions to compute the performance scores of the submitted system**:
+
+- `baseline.metrics.dnnmos_metric.compute_dnsmos`
+- `baseline.metrics.sisdr_metric.compute_sisdr`
+
+We will use these functions to verify the provided performance numbers by scoring the submitted audio files. It is therefore important that participants verify their evaluation is reproducible using the above functions.
+
 ### Evaluation file eval.py
 
 Running and evaluating the baseline can be done using the `eval.py` file.
 
-The function `compute_metrics` of the `eval.py` file is independent of the baseline system. **Participants are asked to use it to report the results of their system for the UDASE task of CHiME-7.** The verification of the submitted scores from the submitted audio signals will be based on this function.
+The function `compute_metrics` of the `eval.py` file is independent of the baseline system. Participants can thus use it to report the results of their system for the UDASE task of CHiME-7. 
 
-#### Usage of the `compute_metrics` function:
+**Usage of the `compute_metrics` function:**
 
 Assume the directory `<output_path>/audio` is structured as shown in the tree below.
 
@@ -253,7 +271,7 @@ At each leaf of this tree, we have a directory that contains the output wav file
 -   For LibriMix, the output signal corresponding to the input signal `<mix ID>.wav` should be named `<mix ID>_output.wav`. For example, the output signal `<output_path>/audio/LibriMix/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012_output.wav` corresponds to the input signal `<librimix_input_path>/Libri2Mix/wav16k/max/test/mix_single/61-70968-0000_8455-210777-0012.wav`.
       
 
-To compute the results for a given dataset, we should set the input variables `*_input_path` and `*_subsets` appropriately (see Parameters section above). If `*_input_path` and `*_subsets` are set to `None` (default), results will not be computed for the corresponding dataset. 
+To compute the results for a given dataset, we should set the input variables `xxx_input_path` and `xxx_subsets` appropriately (see Parameters section above). If `xxx_input_path` and `xxx_subsets` are set to `None` (default), results will not be computed for the corresponding dataset. 
 
 For the example directory `<output_path>/audio` shown above, we set the input variables as follows (this is just an example, of course you should adapt the paths):
 
@@ -291,10 +309,10 @@ librimix_subsets = ['Libri2Mix/wav16k/max/test/mix_single',
                     'Libri3Mix/wav16k/max/test/mix_both']
 ```
 
-After setting appropriately the variable 'output_path', for instance with
+After setting appropriately the variable `output_path`, for instance with
 
 ```python
-output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results_new/remixit-vad'
+output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results/remixit-vad'
 ```
 
 we can call the `compute_metrics` function:
@@ -327,31 +345,10 @@ If the optional input variable `compute_input_scores` is set to `True`, an addit
 
 ## Baseline performance
 
-### Dev sets
-
--   #### Reverberant LibriCHiME-5
-
-    Results are averaged on the following subsets: `dev/1`; `dev/2`; `dev/3`.
-
-    |                                                      | SI-SDR (dB) |
-    | ---------------------------------------------------- | ----------- |
-    | unprocessed                                          | 6.57        |
-    | Sudo rm -rf (fully-supervised out-of-domain teacher) | 8.23        |
-    | RemixIT (self-supervised student)                    | 9.46        |
-    | RemixIT (self-supervised student) using VAD          | **9.83**    |
-
--   #### CHiME-5
-
-    Results are averaged on the `dev/1` subset.
-
-    |                                                      | OVR-MOS  | BAK-MOS  | SIG-MOS  |
-    | ---------------------------------------------------- | -------- | -------- | -------- |
-    | unprocessed                                          | 3.03     | 3.04     | **3.64** |
-    | Sudo rm -rf (fully-supervised out-of-domain teacher) | 3.08     | 3.79     | 3.48     |
-    | RemixIT (self-supervised student)                    | 3.07     | 3.84     | 3.43     |
-    | RemixIT (self-supervised student) using VAD          | **3.09** | **3.85** | 3.46     |
-
 ### Eval sets
+
+These scores were computed using the script `eval.py`
+
 
 -   #### Reverberant LibriCHiME-5
 
@@ -385,6 +382,33 @@ If the optional input variable `compute_input_scores` is set to `True`, an addit
     | Sudo rm -rf (fully-supervised out-of-domain teacher) | **13.23**   |
     | RemixIT (self-supervised student)                    | 11.47       |
     | RemixIT (self-supervised student) using VAD          | 12.15       |
+
+### Dev sets
+
+These scores were computed using the script `baseline/utils/final_evaluation.py`
+
+-   #### Reverberant LibriCHiME-5
+
+    Results are averaged on the following subsets: `dev/1`; `dev/2`; `dev/3`.
+
+    |                                                      | SI-SDR (dB) |
+    | ---------------------------------------------------- | ----------- |
+    | unprocessed                                          | 6.57        |
+    | Sudo rm -rf (fully-supervised out-of-domain teacher) | 8.23        |
+    | RemixIT (self-supervised student)                    | 9.46        |
+    | RemixIT (self-supervised student) using VAD          | **9.83**    |
+
+-   #### CHiME-5
+
+    Results are averaged on the `dev/1` subset.
+
+    |                                                      | OVR-MOS  | BAK-MOS  | SIG-MOS  |
+    | ---------------------------------------------------- | -------- | -------- | -------- |
+    | unprocessed                                          | 3.03     | 3.04     | **3.64** |
+    | Sudo rm -rf (fully-supervised out-of-domain teacher) | 3.08     | 3.79     | 3.48     |
+    | RemixIT (self-supervised student)                    | 3.07     | 3.84     | 3.43     |
+    | RemixIT (self-supervised student) using VAD          | **3.09** | **3.85** | 3.46     |
+
 
 ## References
 

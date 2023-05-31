@@ -26,7 +26,7 @@ python eval.py --eval-baseline --input-scores --model remixit-vad
 """
 
 # output path to store the results of the baseline
-output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results_new'
+output_path = '/data2/datasets/UDASE-CHiME2023/baseline_results'
 
 ######## Config for the CHiME-5 dataset of the UDASE task ########
 
