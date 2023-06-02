@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(description="Validation of the submission to the UDASE task of CHiME-7", 
                                      add_help=False)
-    parser.add_argument("--submission_dir", type=str, help="Path to the submission directory.")
+    parser.add_argument("submission_dir", type=str, help="Path to the submission directory.")
     args = parser.parse_args()
     
     submission_dir = args.submission_dir

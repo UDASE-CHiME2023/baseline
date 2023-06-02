@@ -2,7 +2,7 @@
 
 Updates:
 
-- [June 2, 2023] Added information in [Instructions for performance evaluation](#instructions-for-performance-evaluation).
+- [June 2, 2023] New information in [Instructions for performance evaluation](#instructions-for-performance-evaluation). New files `eval.py` and `check_submission.py`.
 
 --- 
 
