@@ -37,7 +37,7 @@ def check_loudness(wav_file):
     x, _ = sf.read(wav_file)
     loudness = meter.integrated_loudness(x)
     
-    return np.isclose(loudness, -30.0, rtol=0.5)
+    return np.isclose(loudness, -30.0, atol=1)
 
 if __name__ == "__main__":
     
