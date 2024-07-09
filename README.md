@@ -417,3 +417,8 @@ These scores were computed using the script `baseline/utils/final_evaluation.py`
 [2] Tzinis, E., Wang, Z., Jiang, X., and Smaragdis, P., Compute and memory efficient universal sound source separation. In Journal of Signal Processing Systems, vol. 9, no. 2, pp. 245–259, 2022, Springer. <https://arxiv.org/pdf/2103.02644.pdf>
 
 [3] Tzinis, E., Adi, Y., Ithapu, V. K., Xu, B., Smaragdis, P., & Kumar, A. (October, 2022). RemixIT: Continual self-training of speech enhancement models via bootstrapped remixing. In IEEE Journal of Selected Topics in Signal Processing. <https://arxiv.org/abs/2202.08862>
+
+## Citation
+
+If you use this code in your research, please cite:
+> Leglaive, S., Borne, L., Tzinis, E., Sadeghi, M., Fraticelli, M., Wisdom, S., Pariente, M., Pressnitzer, D., & Hershey, J. R. (2023). The CHiME-7 UDASE task: Unsupervised domain adaptation for conversational speech enhancement. In 7th International Workshop on Speech Processing in Everyday Environments (CHiME).
